@@ -12,7 +12,7 @@ do
     # Generate a unique output file name based on the input file name
     # Constructs a new file name based on the name of the input file,
     # appending '_output.txt' to create a unique name for the output file.
-    output_file="$(basename "$file_path")_output.txt"
+    output_file="$(basename "$file_path")_docs.md"
 
     # Escape special characters in the file path
     # Prepares the file path string so that it can be safely used in a sed command.
