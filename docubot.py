@@ -2,7 +2,7 @@ import os
 import asyncio
 import sys
 from modules.llm_model import generate_completion
-from modules.source_code_finder import traverse
+from modules.source_code_finder import document_source_files
 from modules.generate_prompts import generate_prompts
 
 def read_api_key(file_path="openai_api_key"):
@@ -36,40 +36,43 @@ async def process_files(input_dir, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Loop through all the files in the input directory
-    for filename in os.listdir(input_dir):
-        file_path = os.path.join(input_dir, filename)
+    # Loop through all the files listed in files.txt
+    with open("files.txt", 'r') as file:
+        files = file.read().splitlines()
 
-        # Only process files (not directories)
-        if os.path.isfile(file_path):
-            with open(file_path, 'r') as file:
-                prompt = file.read()
+    for file_path in files:
+        relative_path = os.path.relpath(file_path, input_dir)
+        output_path = os.path.join(output_dir, os.path.dirname(relative_path))
+        os.makedirs(output_path, exist_ok=True)
 
-            # Generate completion using the OpenAI API
-            completion = await generate_completion(prompt)
+        with open(file_path, 'r') as source_file:
+            prompt = source_file.read()
 
-            # Write the completion to a new file in the output directory
-            output_file_path = os.path.join(output_dir, filename)
-            with open(output_file_path, 'w') as output_file:
-                output_file.write(completion)
+        # Generate completion using the OpenAI API
+        completion = await generate_completion(prompt)
+
+        # Write the completion to a new file in the output directory
+        output_file_name = os.path.basename(file_path) + '_doc.md'
+        output_file_path = os.path.join(output_path, output_file_name)
+
+        with open(output_file_path, 'w') as output_file:
+            output_file.write(completion)
 
 def main(input_dir, output_dir):
     """
     Main function that gets invoked when the script is run directly.
-    It takes the input and output directory paths from the command line arguments,
-    calls the traverse function from the source_code_finder module,
-    and then runs the asynchronous process_files function.
     """
     print("input_dir arg:", input_dir)
     print("output_dir arg:", output_dir)
 
-    # Run the traverse function from the source_code_finder module
-    traverse(input_dir, output_dir)
-    # Run the generate_prompts function from generate_prompts module
+    # Run the document_source_files function from the source_code_finder module to generate mirrored directories
+    document_source_files(input_dir, output_dir)
+
+    # Run the generate_prompts function from the generate_prompts module
     generate_prompts()
 
-    # Run the asynchronous function to process all files
-    asyncio.run(process_files('prompts', 'output-docs'))
+    # Process all prompts
+    asyncio.run(process_files(input_dir, output_dir))
 
 # This is the standard boilerplate that calls the 'main' function
 # when the script is run directly
